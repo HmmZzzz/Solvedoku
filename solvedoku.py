@@ -104,6 +104,7 @@ class SudokuApp:
         self.is_solving = False
         self.create_ui()
         self.clear_board()
+        self.start_time = 0
 
     def create_ui(self):
         grid_frame = tk.Frame(self.root, bg="black", bd=2)
@@ -144,11 +145,17 @@ class SudokuApp:
 
         #Display step
         self.status_label = tk.Label(self.root, text="Please enter a Sudoku puzzle and choose a solving method.", font=("Roboto", 10, "bold"), bg="#f0f0f0")
-        self.status_label.pack(pady=5)
+        self.status_label.pack(pady=2)
 
         #Display memory usage
         self.memory_label = tk.Label(self.root, text="Memory usage: 0.00 KB", font=("Roboto", 10, "bold"), bg="#f0f0f0")
-        self.memory_label.pack(pady=0)
+        self.memory_label.pack(pady=2)
+
+        #Display time taken
+        self.time_label = tk.Label(self.root, text="Time taken: 0.00s", font=("Roboto", 10, "bold"), bg="#f0f0f0")
+        self.time_label.pack(pady=2)
+
+
 
     def toggle_buttons(self, state):
         self.reset_btn.config(state=state)
@@ -172,6 +179,7 @@ class SudokuApp:
 
         self.status_label.config(text="Solution deleted, original puzzle retained")
         self.memory_label.config(text="Memory usage: 0.00 KB")
+        self.time_label.config(text="Time taken: 0.00s")
 
     def clear_board(self):
         if self.is_solving: return
@@ -182,6 +190,7 @@ class SudokuApp:
                 self.cells[(row, col)].delete(0, tk.END)
         self.status_label.config(text="Empty board. Please enter a puzzle")
         self.memory_label.config(text="Memory usage: 0.00 KB")
+        self.time_label.config(text="Time taken: 0.00s")
 
     def get_board_from_ui(self):
         board = [[0 for _ in range(9)] for _ in range(9)]
@@ -209,8 +218,14 @@ class SudokuApp:
         current_mem, _ = tracemalloc.get_traced_memory()
         self.memory_label.config(text=f"Memory usage: {current_mem / 1024:.2f} KB")
 
+        # Update time taken info (real time)
+        elapsed_time = time.time() - self.start_time
+        self.time_label.config(text=f"Time elapsed: {elapsed_time:.5f}s")
+
         self.root.update()
-        time.sleep(0.25)
+
+        #change here to adjust the speed of the UI updates (for demonstration purposes)
+        time.sleep(0)
 
     def lock_board_after_solve(self, original_board):
         for row in range(9):
@@ -234,12 +249,16 @@ class SudokuApp:
 
         # Start tracking memory usage
         tracemalloc.start()
+        #Start tracking time
+        self.start_time = time.time()
 
         steps, success = self.logic.solve_blind(solve_board, self.update_single_cell_ui)
 
         # Get the peak memory usage after solving and stop tracking
         _, peak_mem = tracemalloc.get_traced_memory()
         tracemalloc.stop()
+        # Get total time taken
+        total_time = time.time() - self.start_time
 
         if success:
             self.lock_board_after_solve(original_board)
@@ -248,6 +267,7 @@ class SudokuApp:
             self.status_label.config(text=f"No solution found! (Tried {steps} steps)")
 
         self.memory_label.config(text=f"Peak memory usage: {peak_mem / 1024:.2f} KB")
+        self.time_label.config(text=f"Total time: {total_time:.5f}s")
 
         self.is_solving = False
         self.toggle_buttons("normal")
@@ -265,12 +285,17 @@ class SudokuApp:
 
         # Statt tracking memory usage
         tracemalloc.start()
+        #Start tracking time
+        self.start_time = time.time()
 
         steps, success = self.logic.solve_heuristic(solve_board, self.update_single_cell_ui)
 
         # Get the peak memory usage after solving and stop tracking
         _, peak_mem = tracemalloc.get_traced_memory()
         tracemalloc.stop()
+
+        # Get total time taken
+        total_time = time.time() - self.start_time
 
         if success:
             self.lock_board_after_solve(original_board)
@@ -279,6 +304,8 @@ class SudokuApp:
             self.status_label.config(text=f"No solution found! (Tried {steps} steps)")
 
         self.memory_label.config(text=f"Peak memory usage: {peak_mem / 1024:.2f} KB")
+
+        self.time_label.config(text=f"Total time: {total_time:.5f}s")
 
         self.is_solving = False
         self.toggle_buttons("normal")
